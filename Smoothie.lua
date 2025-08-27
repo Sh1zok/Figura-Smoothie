@@ -20,7 +20,7 @@ function smoothie:newSmoothHead()
 
     events.RENDER:register(function(_, context)
         if not player:isLoaded() then return end
-        if not (context == "RENDER" or context == "FIRST_PERSON") then return end
+        if not (context == "RENDER" or context == "FIRST_PERSON" or context == "MINECRAFT_GUI") then return end
         if headModelParts == {} then return end
 
         local headRot = math.lerp(
