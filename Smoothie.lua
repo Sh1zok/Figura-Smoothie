@@ -1,7 +1,7 @@
 --[[
     ■■■■■ Smoothie
     ■   ■ Author: Sh1zok
-    ■■■■  v0.25
+    ■■■■  v0.50
 ]]--
 
 local smoothie = {}
@@ -89,5 +89,82 @@ function smoothie:newSmoothHead()
 
     return interface
 end
+
+local function newEye(offsets)
+    --[[
+        Setting up some variables
+    ]]--
+    local interface = {}
+    local eyeModelPart
+    local topOffsetStrenght = offsets.top
+    local leftOffsetStrenght = offsets.left
+    local rightOffsetStrenght = offsets.right
+    local bottomOffsetStrenght = offsets.bottom
+
+    events.RENDER:register(function(_, context)
+        if not player:isLoaded() then return end
+        if not (context == "RENDER" or context == "FIRST_PERSON" or context == "MINECRAFT_GUI") then return end
+        if not eyeModelPart then return end
+
+        local vanillaHeadRot = (vanilla_model.HEAD:getOriginRot() + 180) % 360 - 180
+        eyeModelPart:setPos(
+            math.clamp(
+                -math.sign(vanillaHeadRot[2]) * ((vanillaHeadRot[2] / 60) ^ 2),
+                -leftOffsetStrenght,
+                rightOffsetStrenght
+            ),
+            math.clamp(
+                math.sign(vanillaHeadRot[1]) * ((vanillaHeadRot[1] / 125) ^ 2),
+                -bottomOffsetStrenght,
+                topOffsetStrenght
+            ),
+            0
+        )
+    end, "Smoothie.EyeProcessor")
+
+    function interface:setEyeModelPart(modelPart)
+        assert(type(modelPart) == "ModelPart" or type(modelPart) == "nil", "Invalid argument to function setEyeModelPart. Expected ModelPart, but got " .. type(modelPart))
+        eyeModelPart = modelPart
+
+        return interface
+    end
+    function interface:eyeModelPart(modelPart) return interface:setEyeModelPart(modelPart) end
+
+    function interface:setTopOffsetStrenght(value)
+        assert(type(value) == "number", "Invalid argument to function setTopOffsetStrenght. Expected number, but got " .. type(value))
+        topOffsetStrenght = value
+
+        return interface
+    end
+    function interface:topOffsetStrenght(value) return interface:setTopOffsetStrenght(value) end
+
+    function interface:setBottomOffsetStrenght(value)
+        assert(type(value) == "number", "Invalid argument to function setBottomOffsetStrenght. Expected number, but got " .. type(value))
+        bottomOffsetStrenght = value
+
+        return interface
+    end
+    function interface:bottomOffsetStrenght(value) return interface:setBottomOffsetStrenght(value) end
+
+    function interface:setLeftOffsetStrenght(value)
+        assert(type(value) == "number", "Invalid argument to function setLeftOffsetStrenght. Expected number, but got " .. type(value))
+        leftOffsetStrenght = value
+
+        return interface
+    end
+    function interface:leftOffsetStrenght(value) return interface:setLeftOffsetStrenght(value) end
+
+    function interface:setRightOffsetStrenght(value)
+        assert(type(value) == "number", "Invalid argument to function setRightOffsetStrenght. Expected number, but got " .. type(value))
+        rightOffsetStrenght = value
+
+        return interface
+    end
+    function interface:rightOffsetStrenght(value) return interface:setRightOffsetStrenght(value) end
+
+    return interface
+end
+function smoothie.newRightEye() return newEye({top = 0.5, bottom = 0.5, right = 0.66, left = 0.34}) end
+function smoothie.newLeftEye() return newEye({top = 0.5, bottom = 0.5, right = 0.34, left = 0.66}) end
 
 return smoothie
