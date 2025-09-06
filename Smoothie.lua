@@ -11,7 +11,6 @@ local smoothie = {}
 function smoothie:newSmoothHead(modelPart)
     -- Checking the validity of the parameter
     assert(type(modelPart) == "ModelPart", "Invalid argument to function newSmoothHead. Expected ModelPart, but got " .. type(table))
-    assert(modelPart ~= models, "You can't make this model part a smooth head")
     modelPart:setParentType("NONE") -- Preparing modelPart
 
     -- Setting up some variables
