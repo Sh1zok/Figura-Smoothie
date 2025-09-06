@@ -1,4 +1,4 @@
-# Figura-ActionsLists
+# Figura-Smoothie
 For those who don't wanna violate the SquAPI license
 
 This repository contains a *library* for Figura avatars. This library adds methods that are almost identical in functionality to [SquAPI](https://github.com/MrSirSquishy/SquishyAPI)
