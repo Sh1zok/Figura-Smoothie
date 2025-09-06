@@ -1,28 +1,36 @@
 --[[
     ■■■■■ Smoothie
     ■   ■ Author: Sh1zok
-    ■■■■  v0.50
+    ■■■■  v0.60
 ]]--
 
 local smoothie = {}
 
-function smoothie:newSmoothHead()
-    --[[
-        Setting up some variables
-    ]]--
+
+
+function smoothie:newSmoothHead(modelPart)
+    -- Checking the validity of the parameter
+    assert(type(modelPart) == "ModelPart", "Invalid argument to function newSmoothHead. Expected ModelPart, but got " .. type(table))
+    assert(modelPart ~= models, "You can't make this model part a smooth head")
+    modelPart:setParentType("NONE") -- Preparing modelPart
+
+    -- Setting up some variables
     local interface = {}
-    local headModelParts = {}
+    local headModelPart = modelPart
     local strenght = 1
     local speed = 1
     local tiltMultiplier = 1
     local keepVanillaPosition = true
     local headRotPrevFrame = vec(0, 0, 0)
 
+    -- Head rotation processor
     events.RENDER:register(function(_, context)
+        -- Checking the need to process the head rotation
         if not player:isLoaded() then return end
         if not (context == "RENDER" or context == "FIRST_PERSON" or context == "MINECRAFT_GUI") then return end
         if headModelParts == {} then return end
 
+        -- Math part
         local headRot = math.lerp(
             headRotPrevFrame,
             ((vanilla_model.HEAD:getOriginRot() + 180) % 360 - 180) * strenght,
@@ -34,105 +42,96 @@ function smoothie:newSmoothHead()
             math.min(8 / client:getFPS() * speed, 1)
         )
 
-        for _, table in ipairs(headModelParts) do table[1]:setOffsetRot(headRot * table[2]) end
+        -- Applying new head rotation
+        headModelPart:setOffsetRot(headRot)
         headRotPrevFrame = headRot
-        if keepVanillaPosition then headModelParts[1][1]:setPos(-vanilla_model.HEAD:getOriginPos()) end
-    end, "Smoothie.smoothHeadProcessor")
 
-    function interface:setHeadModelPart(table)
-        if table == nil then table = {} end
-        if type(table) == "ModelPart" then table = {{table, 1}} end
-        assert(type(table) == "table", "Invalid argument to function setHeadModelPart. Expected table or ModelPart, but got " .. type(table))
-        for _, innerTable in ipairs(headModelParts) do innerTable[1]:setParentType("HEAD") end
-        for _, innerTable in ipairs(table) do innerTable[1]:setParentType("NONE") end
-        headModelParts = table
+        -- Fixing crouching pose
+        if keepVanillaPosition then headModelPart:setPos(-vanilla_model.HEAD:getOriginPos()) end
+    end, "Smoothie.SmoothHead")
 
-        return interface
-    end
-    function interface:headModelPart(modelPart) return interface:setHeadModelPart(modelPart) end
-
+    --[[
+        Interface
+    ]]--
     function interface:setStrenght(value)
         if value == nil then value = 1 end
         assert(type(value) == "number", "Invalid argument to function setStrenght. Expected number, but got " .. type(value))
         strenght = value
 
-        return interface
+        return interface -- Returns interface for chaining
     end
-    function interface:strenght(value) return interface:setStrenght(value) end
+    function interface:strenght(value) return interface:setStrenght(value) end  -- Alias
 
     function interface:setSpeed(value)
         if value == nil then value = 1 end
         assert(type(value) == "number", "Invalid argument to function setSpeed. Expected number, but got " .. type(value))
         speed = value
 
-        return interface
+        return interface -- Returns interface for chaining
     end
-    function interface:speed(value) return interface:setSpeed(value) end
+    function interface:speed(value) return interface:setSpeed(value) end  -- Alias
 
     function interface:setTiltMultiplier(value)
         if value == nil then value = 1 end
         assert(type(value) == "number", "Invalid argument to function setTiltMultiplier. Expected number, but got " .. type(value))
         tiltMultiplier = value
 
-        return interface
+        return interface -- Returns interface for chaining
     end
-    function interface:tiltMultiplier(value) return interface:setTiltMultiplier(value) end
+    function interface:tiltMultiplier(value) return interface:setTiltMultiplier(value) end  -- Alias
 
     function interface:setKeepVanillaPosition(state)
         if state == nil then state = true end
         assert(type(state) == "boolean", "Invalid argument to function setKeepVanillaPosition. Expected boolean, but got " .. type(state))
         keepVanillaPosition = state
 
-        return interface
+        return interface -- Returns interface for chaining
     end
-    function interface:keepVanillaPosition(state) return interface:setKeepVanillaPosition(state) end
+    function interface:keepVanillaPosition(state) return interface:setKeepVanillaPosition(state) end -- Alias
 
     return interface
 end
 
-local function newEye(offsets)
-    --[[
-        Setting up some variables
-    ]]--
-    local interface = {}
-    local eyeModelPart
-    local topOffsetStrenght = offsets.top
-    local leftOffsetStrenght = offsets.left
-    local rightOffsetStrenght = offsets.right
-    local bottomOffsetStrenght = offsets.bottom
 
+
+function smoothie:newEye(modelPart)
+    -- Checking the validity of the parameter
+    assert(type(modelPart) == "ModelPart", "Invalid argument to function newEye. Expected ModelPart, but got " .. type(table))
+
+    -- Setting up some variables
+    local interface = {}
+    local eyeModelPart = modelPart
+    local offsetStrenght = {top = 1, bottom = 1, left = 1, right = 1}
+
+    -- Eye processor
     events.RENDER:register(function(_, context)
+        -- Checking the need to process the head rotation
         if not player:isLoaded() then return end
         if not (context == "RENDER" or context == "FIRST_PERSON" or context == "MINECRAFT_GUI") then return end
         if not eyeModelPart then return end
 
+        -- Math part
         local vanillaHeadRot = (vanilla_model.HEAD:getOriginRot() + 180) % 360 - 180
+
+        -- Applying new eye offset
         eyeModelPart:setPos(
             math.clamp(
                 -math.sign(vanillaHeadRot[2]) * ((vanillaHeadRot[2] / 60) ^ 2),
-                -leftOffsetStrenght,
-                rightOffsetStrenght
+                -offsetStrenght.left,
+                offsetStrenght.right
             ),
             math.clamp(
                 math.sign(vanillaHeadRot[1]) * ((vanillaHeadRot[1] / 125) ^ 2),
-                -bottomOffsetStrenght,
-                topOffsetStrenght
+                -offsetStrenght.bottom,
+                offsetStrenght.top
             ),
             0
         )
     end, "Smoothie.EyeProcessor")
 
-    function interface:setEyeModelPart(modelPart)
-        assert(type(modelPart) == "ModelPart" or type(modelPart) == "nil", "Invalid argument to function setEyeModelPart. Expected ModelPart, but got " .. type(modelPart))
-        eyeModelPart = modelPart
-
-        return interface
-    end
-    function interface:eyeModelPart(modelPart) return interface:setEyeModelPart(modelPart) end
-
     function interface:setTopOffsetStrenght(value)
         assert(type(value) == "number", "Invalid argument to function setTopOffsetStrenght. Expected number, but got " .. type(value))
-        topOffsetStrenght = value
+        offsetStrenght.top = value
 
         return interface
     end
@@ -140,7 +139,7 @@ local function newEye(offsets)
 
     function interface:setBottomOffsetStrenght(value)
         assert(type(value) == "number", "Invalid argument to function setBottomOffsetStrenght. Expected number, but got " .. type(value))
-        bottomOffsetStrenght = value
+        offsetStrenght.bottom = value
 
         return interface
     end
@@ -148,7 +147,7 @@ local function newEye(offsets)
 
     function interface:setLeftOffsetStrenght(value)
         assert(type(value) == "number", "Invalid argument to function setLeftOffsetStrenght. Expected number, but got " .. type(value))
-        leftOffsetStrenght = value
+        offsetStrenght.left = value
 
         return interface
     end
@@ -156,7 +155,7 @@ local function newEye(offsets)
 
     function interface:setRightOffsetStrenght(value)
         assert(type(value) == "number", "Invalid argument to function setRightOffsetStrenght. Expected number, but got " .. type(value))
-        rightOffsetStrenght = value
+        offsetStrenght.right = value
 
         return interface
     end
@@ -164,7 +163,5 @@ local function newEye(offsets)
 
     return interface
 end
-function smoothie.newRightEye() return newEye({top = 0.5, bottom = 0.5, right = 0.66, left = 0.34}) end
-function smoothie.newLeftEye() return newEye({top = 0.5, bottom = 0.5, right = 0.34, left = 0.66}) end
 
 return smoothie
