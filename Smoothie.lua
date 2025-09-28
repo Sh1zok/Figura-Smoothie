@@ -1,7 +1,7 @@
 --[[
     ■■■■■ Smoothie
     ■   ■ Author: Sh1zok
-    ■■■■  v0.7.0
+    ■■■■  v0.9.0
 
 MIT License
 
@@ -26,6 +26,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]--
 
+local vanillaEyesPoint = models:newPart("smoothieVanillaEyesPivot"):setPos(0, 28, 0)
 local smoothie = {}
 
 
@@ -189,7 +190,7 @@ end
 
 function smoothie:newEar(modelPart)
     -- Checking the validity of the parameter
-    assert(type(modelPart) == "ModelPart", "Invalid argument to function newHorizontalEar. Expected ModelPart, but got " .. type(modelPart))
+    assert(type(modelPart) == "ModelPart", "Invalid argument to function newEar. Expected ModelPart, but got " .. type(modelPart))
 
     -- Setting up some variables
     local interface = {}
@@ -214,7 +215,7 @@ function smoothie:newEar(modelPart)
 
         -- Soft reduction of head deviation to zeros
         headRotationDelta = math.lerp(headRotationDelta, vec(0, 0, 0), 5 / client:getFPS())
-    end, "Smoothie.horizontalEarProcessor")
+    end, "Smoothie.earProcessor")
 
     function interface:setBouncy(value)
         assert(type(value) == "number", "Invalid argument to function setBouncy. Expected number, but got " .. type(value))
@@ -222,7 +223,7 @@ function smoothie:newEar(modelPart)
 
         return interface
     end
-    function interface:boucny(value) return interface:setBouncy(value) end -- Alias
+    function interface:bouncy(value) return interface:setBouncy(value) end -- Alias
 
     function interface:setSpeed(value)
         assert(type(value) == "number", "Invalid argument to function setSpeed. Expected number, but got " .. type(value))
@@ -263,6 +264,142 @@ function smoothie:newEar(modelPart)
         return interface
     end
     function interface:rightLimit(value) return interface:setRightLimit(value) end -- Alias
+
+    return interface
+end
+
+
+
+function smoothie:newPhysicalBody(modelPart)
+    -- Checking the validity of the parameter
+    assert(type(modelPart) == "ModelPart", "Invalid argument to function newPhysicalBody. Expected ModelPart, but got " .. type(modelPart))
+
+    -- Setting up some variables
+    local interface = {}
+    local physicalModelPart = modelPart
+    local bodyYaw, prevBodyYaw, bodyYawDelta = 0, 0, 0
+    local playerVerticalVelocity, prevPlayerVerticalVelocity, playerVerticalVelocityDelta = 0, 0, 0
+    local physBodyRotationVelocity = vec(0, 0, 0)
+    local bouncy = 0.5
+    local speed = 150
+    local rotationLimits = {top = 45, bottom = 45, left = 15, right = 15}
+
+    -- Initialization
+    if player:isLoaded() then bodyYaw, prevBodyYaw = player:getBodyYaw(), player:getBodyYaw() end
+
+    -- Physical body processor
+    events.RENDER:register(function()
+        if not player:isLoaded() then return end
+
+        -- Calculating the difference in body yaw
+        bodyYaw = player:getBodyYaw()
+        bodyYawDelta = bodyYawDelta + (bodyYaw - prevBodyYaw)
+        prevBodyYaw = bodyYaw
+
+
+        -- Calculating the difference in player's vectical velocity
+        playerVerticalVelocity = player:getVelocity().y
+        playerVerticalVelocityDelta = playerVerticalVelocityDelta + (playerVerticalVelocity - prevPlayerVerticalVelocity)
+        prevPlayerVerticalVelocity = playerVerticalVelocity
+
+        local deltas = vec(-playerVerticalVelocityDelta * 100, bodyYawDelta, bodyYawDelta)
+
+        -- Calculation the physical body rotation
+        physBodyRotationVelocity = physBodyRotationVelocity + -(speed * (physicalModelPart:getOffsetRot() - deltas) + math.sqrt(speed * bouncy) / 2 * physBodyRotationVelocity / bouncy) / client:getFPS()
+        local physBodyRotation = physicalModelPart:getOffsetRot() + physBodyRotationVelocity / client:getFPS()
+        physBodyRotation[1] = math.clamp(physBodyRotation[1], -rotationLimits.bottom, rotationLimits.top)
+        physBodyRotation[2] = math.clamp(physBodyRotation[2], -rotationLimits.left, rotationLimits.right)
+        physBodyRotation[3] = math.clamp(physBodyRotation[3], -rotationLimits.left, rotationLimits.right)
+
+        physicalModelPart:setOffsetRot(physBodyRotation)
+
+        -- Soft reduction of deltas to zeros
+        playerVerticalVelocityDelta = math.lerp(playerVerticalVelocityDelta, 0, 15 / client:getFPS())
+        bodyYawDelta = math.lerp(bodyYawDelta, 0, 15 / client:getFPS())
+    end, "Smoothie.physicalBodyProcessor")
+
+    function interface:setSpeed(value)
+        assert(type(value) == "number", "Invalid argument to function setSpeed. Expected number, but got " .. type(value))
+        speed = value
+
+        return interface
+    end
+    function interface:speed(value) return interface:setSpeed(value) end -- Alias
+
+    function interface:setBouncy(value)
+        assert(type(value) == "number", "Invalid argument to function setBouncy. Expected number, but got " .. type(value))
+        bouncy = value
+
+        return interface
+    end
+    function interface:bouncy(value) return interface:setBouncy(value) end -- Alias
+
+    function interface:setTopLimit(value)
+        assert(type(value) == "number", "Invalid argument to function setTopLimit. Expected number, but got " .. type(value))
+        rotationLimits.top = value
+
+        return interface
+    end
+    function interface:topLimit(value) return interface:setTopLimit(value) end -- Alias
+
+    function interface:setBottomLimit(value)
+        assert(type(value) == "number", "Invalid argument to function setBottomLimit. Expected number, but got " .. type(value))
+        rotationLimits.bottom = value
+
+        return interface
+    end
+    function interface:bottomLimit(value) return interface:setBottomLimit(value) end -- Alias
+
+    function interface:setLeftLimit(value)
+        assert(type(value) == "number", "Invalid argument to function setLeftLimit. Expected number, but got " .. type(value))
+        rotationLimits.left = value
+
+        return interface
+    end
+    function interface:leftLimit(value) return interface:setLeftLimit(value) end -- Alias
+
+    function interface:setRightLimit(value)
+        assert(type(value) == "number", "Invalid argument to function setRightLimit. Expected number, but got " .. type(value))
+        rotationLimits.right = value
+
+        return interface
+    end
+    function interface:rightLimit(value) return interface:setRightLimit(value) end -- Alias
+
+    return interface
+end
+
+
+
+function smoothie:setEyesPivot(modelPart)
+    -- Checking the validity of the parameter
+    assert(type(modelPart) == "ModelPart", "Invalid argument to function setEyesPivot. Expected ModelPart, but got " .. type(modelPart))
+
+    local interface = {}
+    local eyesPivotModelPart = modelPart
+    local eyesOffset = vec(0, 0, 0)
+    local speed = 10
+
+    events.POST_RENDER:remove("Smoothie.cameraPivotProcessor")
+    events.POST_RENDER:register(function()
+        if not player:isLoaded() then return end
+
+        local newEyesOffset = eyesPivotModelPart:partToWorldMatrix():apply() - vanillaEyesPoint:partToWorldMatrix():apply()
+        newEyesOffset = newEyesOffset + vanilla_model.HEAD:getOriginPos() / 16
+        if newEyesOffset:length() ~= newEyesOffset:length() then return end -- Cathing the NaN
+
+        eyesOffset = math.lerp(eyesOffset, newEyesOffset, math.min(speed / client:getFPS(), 1))
+        renderer:offsetCameraPivot(eyesOffset)
+        renderer:setEyeOffset(eyesOffset)
+    end, "Smoothie.cameraPivotProcessor")
+
+    function interface:setSpeed(value)
+        assert(type(value) == "number", "Invalid argument to function setSpeed. Expected number, but got " .. type(value))
+        speed = value
+
+        return interface
+    end
+    function interface:speed(value) return interface:setSpeed(value) end -- Alias
 
     return interface
 end
